@@ -1,0 +1,49 @@
+/* frontend/css/task-detail.css */
+
+.videos-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.videos-table th,
+.videos-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.videos-table th {
+    background-color: #f2f2f2;
+}
+
+.videos-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.videos-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* 任务汇总行的样式 */
+.videos-table td[colspan="5"] {
+    font-size: 1.1em;
+    padding: 15px 10px;
+    background-color: #e0e0e0; /* 略深一点的背景色 */
+    border-bottom: 2px solid #ccc; /* 加粗下边框 */
+    margin-top: 15px; /* 上方增加间距 */
+    border-radius: 4px; /* 轻微圆角 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
+}
+
+.collapsible-task-header {
+    cursor: pointer;
+}
+
+.collapsible-task-header .toggle-icon {
+    margin-right: 5px;
+    font-weight: bold;
+    display: inline-block;
+    width: 1em;
+    text-align: center;
+}

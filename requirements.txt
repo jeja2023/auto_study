@@ -1,0 +1,11 @@
+fastapi==0.111.0
+uvicorn==0.29.0
+SQLAlchemy==2.0.30
+mysql-connector-python==8.0.33
+python-dotenv==1.0.1
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.9
+pydantic==2.8.2
+drissionpage==4.0.0
+passlib==1.7.2
+bcrypt==4.0.1

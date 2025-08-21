@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统日志</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/logs.css"> <!-- 为日志页面添加专用CSS -->
+</head>
+<body>
+    <div class="container">
+        <h1>系统日志</h1>
+        <div class="log-table-container">
+            <table id="logTable" class="log-table">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>级别</th>
+                        <th>消息</th>
+                        <th>用户ID</th>
+                        <th>用户名</th>
+                        <th>IP地址</th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody">
+                    <!-- 日志将通过 JavaScript 动态加载 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="/js/logs.js"></script>
+</body>
+</html>

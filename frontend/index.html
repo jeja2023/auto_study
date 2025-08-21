@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动学习应用 - 学习网站</title>
+    <link rel="stylesheet" href="/css/common.css"> 
+    <link rel="stylesheet" href="/css/index.css"> 
+</head>
+<body>
+    <nav class="main-nav">
+        <div class="nav-group-left"> <!-- 导航链接组 -->
+            <a href="/index" class="nav-item active">学习网站</a>
+            <a href="/logs" class="nav-item" target="_blank">系统日志</a>
+            <a href="/admin" class="nav-item" id="adminLink" style="display: none;" target="_blank">管理员面板</a>
+        </div>
+        <button id="logoutButton" class="nav-item">退出登录</button>
+    </nav>
+    <div class="container">
+        <h2>学习网站信息</h2>
+        <div class="button-group">
+            <button id="addNewCredentialBtn" class="btn-primary">添加新网站</button>
+        </div>
+        
+        <table class="credential-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>网站名称</th>
+                    <th>网站URL</th>
+                    <th>用户名</th>
+                    <th>密码</th> 
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="credentialsListBody">
+                <tr>
+                    <td colspan="6" class="empty-list-message">暂无凭据，请点击“添加新网站”创建。</td>
+                </tr>
+                <!-- 凭据列表将通过 JavaScript 动态加载 -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 密码查看模态对话框 -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>查看学习网站密码</h2>
+            <div class="form-group">
+                <label for="systemPassword">系统密码:</label>
+                <input type="password" id="systemPassword" placeholder="请输入您的系统登录密码" required>
+            </div>
+            <button id="confirmViewPasswordBtn" class="btn-primary">确认查看</button>
+            <button id="cancelViewPasswordBtn" class="btn-secondary">取消</button>
+        </div>
+    </div>
+    <script src="/js/index.js"></script> 
+</body>
+</html>

@@ -1,0 +1,446 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f4f7f6; /* 柔和的背景色 */
+    color: #333;
+    /* padding: 20px; */ /* 移除整体内边距，由导航栏和容器控制 */
+    box-sizing: border-box;
+}
+
+/* 主要导航栏样式 */
+.main-nav {
+    background-color: #343a40; /* 深色背景 */
+    padding: 15px 20px;
+    display: flex;
+    justify-content: flex-start; /* 链接靠左对齐 */
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* 导航栏阴影 */
+    position: sticky; /* 粘性定位 */
+    top: 0; /* 距离顶部0 */
+    z-index: 999; /* 确保在最上层 */
+}
+
+.main-nav .nav-item {
+    color: #f8f9fa; /* 浅色文字 */
+    text-decoration: none;
+    padding: 10px 15px;
+    margin-right: 15px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-weight: 500;
+}
+
+.main-nav .nav-item:hover {
+    background-color: #495057; /* 悬停背景 */
+    color: #ffffff;
+}
+
+.main-nav .nav-item.active {
+    background-color: #007bff; /* 选中项的蓝色背景 */
+    color: white;
+}
+
+.main-nav #logoutButton {
+    margin-left: auto; /* 推到最右边 */
+    background-color: #dc3545; /* 红色退出按钮 */
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.main-nav #logoutButton:hover {
+    background-color: #c82333;
+}
+
+.container {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* 更柔和的阴影 */
+    width: 100%;
+    max-width: 1600px; /* 增加页面宽度以适应表格 */
+    margin: 20px auto; /* 使用 margin auto 居中 */
+    margin-top: 20px; /* 确保与导航栏的间距 */
+    display: block; /* 确保是块级元素 */
+}
+
+h1 {
+    color: #0056b3;
+    margin-bottom: 25px;
+    font-size: 2.2em; /* 标题字号 */
+}
+
+h2 {
+    color: #007bff;
+    margin-top: 0; /* 移除顶部多余间距，由 container padding 控制 */
+    margin-bottom: 20px;
+    font-size: 1.6em;
+    text-align: center; /* 标题居中 */
+}
+
+/* 移除对 div 的全局 margin-bottom 影响表格 */
+/* div {
+    margin-bottom: 15px;
+} */
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #555;
+    text-align: left; /* 标签左对齐 */
+}
+
+input[type="text"],
+input[type="password"],
+input[type="url"],
+input[type="tel"] {
+    width: 100%; /* 修正宽度为100% */
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box; /* 确保包含padding和border在宽度内 */
+    font-size: 1em;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="url"]:focus,
+input[type="tel"]:focus {
+    border-color: #007bff; /* 聚焦时边框变色 */
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* 聚焦时添加光晕效果 */
+    outline: none; /* 移除默认的焦点轮廓 */
+}
+
+/* 表格样式调整 (基础部分，详细部分在 index.html 中定义) */
+.credential-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    table-layout: fixed; /* 确保表格列宽按预期工作 */
+}
+
+.credential-table th,
+.credential-table td {
+    border: 1px solid #ddd;
+    padding: 12px 8px; /* 调整内边距 */
+    text-align: left; /* 文本左对齐 */
+    vertical-align: middle;
+    word-wrap: break-word; /* 允许长文本换行 */
+}
+
+.credential-table th {
+    background-color: #e9ecef; /* 更浅的头部背景 */
+    font-weight: bold;
+    color: #333;
+}
+
+.credential-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.credential-table tr:hover {
+    background-color: #e2e6ea;
+}
+
+/* 通用按钮样式 (非表格操作按钮) */
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1em;
+    margin: 5px; /* 按钮间距 */
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+
+.btn-primary:active {
+    background-color: #004085;
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background-color: #6c757d; /* 次级按钮颜色 */
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1em;
+    margin: 5px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+    transform: translateY(-2px);
+}
+
+.btn-secondary:active {
+    background-color: #494f54;
+    transform: translateY(0);
+}
+
+button:disabled {
+    background-color: #cccccc; /* 禁用按钮的颜色 */
+    cursor: not-allowed; /* 禁用时的鼠标样式 */
+    transform: none; /* 禁用时没有动画 */
+}
+
+p {
+    margin-top: 25px;
+    font-size: 1.1em;
+    color: #555;
+    line-height: 1.6; /* 增加行高，提升可读性 */
+}
+
+p a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+p a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+/* 实时学习日志显示区域样式 */
+.log-display {
+    background-color: #e9ecef; /* 浅灰色背景 */
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+    text-align: left;
+    max-height: 400px; /* 增加高度限制 */
+    overflow-y: auto; /* 垂直滚动条 */
+    font-family: 'Consolas', 'Courier New', monospace; /* 等宽字体 */
+    font-size: 0.9em;
+    color: #343a40;
+    white-space: pre-wrap; /* 保持空白符和换行符，并自动换行 */
+    word-break: break-all; /* 防止长单词溢出 */
+}
+
+/* 新增日志条目颜色区分 */
+.log-info { color: #28a745; } /* 绿色 */
+.log-warning { color: #ffc107; } /* 黄色 */
+.log-error { color: #dc3545; } /* 红色 */
+
+/* 模态对话框样式 */
+.modal {
+    display: none; /* 默认隐藏 */
+    position: fixed; /* 固定定位，覆盖整个页面 */
+    z-index: 1000; /* 确保在最上层 */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* 允许滚动（如果内容太多） */
+    background-color: rgba(0,0,0,0.4); /* 半透明黑色背景 */
+    padding-top: 60px; /* 从顶部开始的内边距 */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto; /* 居中显示，并从顶部留出空间 */
+    padding: 25px;
+    border: 1px solid #888;
+    width: 80%; /* 宽度 */
+    max-width: 500px; /* 最大宽度 */
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3); /* 阴影 */
+    position: relative; /* 用于关闭按钮定位 */
+    text-align: left; /* 内部文本左对齐 */
+}
+
+.modal-content h2 {
+    text-align: center;
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.modal-content .form-group label {
+    text-align: left;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="password"] {
+    width: 100%; /* 修正宽度为100% */
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box; /* 确保包含padding和border在宽度内 */
+    font-size: 1em;
+}
+
+.modal-content button {
+    margin: 5px; /* 按钮间距 */
+}
+
+.close-button {
+    color: #aaa;
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* 按钮组样式 */
+.action-buttons {
+    display: flex;
+    gap: 5px; /* 按钮之间的间距 */
+    flex-wrap: nowrap; /* 防止按钮组换行 */
+    justify-content: flex-start; /* 默认左对齐 */
+}
+.action-buttons button {
+    padding: 6px 12px; /* 调整按钮内边距，使其更小 */
+    border-radius: 4px; /* 稍微减小圆角 */
+    border: none;
+    cursor: pointer;
+    font-size: 0.85em; /* 调整字体大小，使其更小 */
+    white-space: nowrap; /* 确保所有操作按钮的文字不换行 */
+    margin: 0; /* 移除通用按钮的 margin */
+    transition: background-color 0.3s ease, transform 0.2s ease; 
+}
+
+.action-buttons button:hover {
+    transform: translateY(-1px); /* 悬停微上浮 */
+}
+
+.action-buttons button:active {
+    transform: translateY(0); /* 点击时恢复原位 */
+}
+
+/* 查看密码按钮的特定样式 */
+.action-buttons .btn-view-password {
+    background-color: #007bff; /* 蓝色 */
+    color: white;
+}
+
+.action-buttons .btn-view-password:hover {
+    background-color: #0056b3;
+}
+
+.action-buttons .btn-edit {
+    background-color: #ffc107; /* 黄色 */
+    color: #333;
+}
+
+.action-buttons .btn-edit:hover {
+    background-color: #e0a800;
+}
+
+.action-buttons .btn-delete {
+    background-color: #dc3545; /* 红色 */
+    color: white;
+}
+
+.action-buttons .btn-delete:hover {
+    background-color: #c82333;
+}
+
+.action-buttons .btn-start {
+    background-color: #28a745; /* 绿色 */
+    color: white;
+}
+
+.action-buttons .btn-start:hover {
+    background-color: #218838;
+}
+
+.action-buttons .btn-view-tasks {
+    background-color: #17a2b8; /* 青色 */
+    color: white;
+}
+
+.action-buttons .btn-view-tasks:hover {
+    background-color: #138496;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 20px;
+        margin: 10px auto;
+    }
+
+    h1 {
+        font-size: 1.8em;
+    }
+
+    h2 {
+        font-size: 1.4em;
+    }
+
+    .main-nav {
+        flex-direction: column; /* 垂直堆叠 */
+        align-items: flex-start;
+    }
+
+    .main-nav .nav-item {
+        margin-right: 0;
+        margin-bottom: 10px; /* 垂直间距 */
+        width: 100%;
+        text-align: center;
+    }
+
+    .main-nav #logoutButton {
+        margin-left: 0; /* 移除自动边距 */
+        width: 100%;
+        text-align: center;
+    }
+
+    .action-buttons {
+        flex-direction: column; /* 垂直堆叠操作按钮 */
+        align-items: stretch; /* 填充宽度 */
+    }
+    .action-buttons button {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+}
+
+/* 额外的桌面端布局调整 */
+@media (min-width: 769px) {
+    .main-nav {
+        justify-content: space-between; /* 桌面端菜单项分散对齐 */
+    }
+    .main-nav .nav-group-left {
+        display: flex;
+        align-items: center;
+    }
+}

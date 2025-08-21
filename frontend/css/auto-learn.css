@@ -1,0 +1,66 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+}
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+.button-group {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.button-group .btn {
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: white;
+    cursor: pointer;
+    border: none;
+    font-size: 16px;
+    margin: 0 5px;
+}
+.button-group .btn-danger {
+    background-color: #dc3545;
+}
+.button-group .btn-danger:hover {
+    background-color: #c82333;
+}
+.button-group .btn-secondary {
+    background-color: #6c757d;
+}
+.button-group .btn-secondary:hover {
+    background-color: #5a6268;
+}
+.log-display {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    padding: 15px;
+    height: 400px;
+    overflow-y: scroll;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    color: #333;
+    white-space: pre-wrap; /* 保持换行和空格 */
+    word-wrap: break-word; /* 避免长单词溢出 */
+}
+#statusMessage {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #e2f0cb;
+    color: #2e8b57;
+    text-align: center;
+    display: none; /* 默认隐藏 */
+}

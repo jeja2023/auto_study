@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务详情</title>
+    <link rel="stylesheet" href="/css/common.css"> 
+    <link rel="stylesheet" href="/css/task-detail.css"> 
+</head>
+<body>
+    <div class="container">
+        <h2 id="taskName"></h2>
+        <p>任务进度: <span id="taskProgress"></span></p>
+        <p>学时: <span id="taskHours"></span></p>
+        
+        <h3>视频列表</h3>
+        <table class="videos-table">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>视频标题</th>
+                    <th>当前进度 (秒)</th>
+                    <th>总时长 (秒)</th>
+                    <th>是否完成</th>
+                </tr>
+            </thead>
+            <tbody id="videosListBody">
+                <!-- 视频列表将通过 JavaScript 动态加载 -->
+            </tbody>
+        </table>
+
+        <div class="button-group" style="margin-top: 20px;">
+            <button class="btn btn-secondary" onclick="window.location.href='/index'">返回任务列表</button>
+        </div>
+    </div>
+    <script src="/js/task-detail.js"></script> 
+</body>
+</html>

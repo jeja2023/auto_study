@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动学习 - 实时日志</title>
+    <link rel="stylesheet" href="/css/common.css"> <!-- 复用通用样式 -->
+    <link rel="stylesheet" href="/css/auto-learn.css"> <!-- auto-learn.html 专属样式 -->
+</head>
+<body>
+    <div class="container">
+        <h2>自动学习实时日志</h2>
+        <div id="statusMessage"></div>
+        <div class="button-group">
+            <button id="stopLearningBtn" class="btn btn-danger">停止学习</button>
+            <button class="btn btn-secondary" onclick="window.location.href='/index'">返回主页</button>
+        </div>
+        <h3>实时日志:</h3>
+        <div id="logDisplay" class="log-display"></div>
+    </div>
+
+    <script src="/js/auto-learn.js"></script>
+</body>
+</html>

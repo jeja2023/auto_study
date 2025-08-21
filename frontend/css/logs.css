@@ -1,0 +1,113 @@
+/* frontend/static/css/logs.css */
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    margin: 0;
+    /* padding: 20px; 移除通用填充，由 main-nav 和 container 协调 */
+}
+
+.container {
+    max-width: 1600px; /* 增加宽度以适应表格 */
+    margin: 20px auto; /* 居中 */
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    padding: 30px;
+}
+
+h1 {
+    color: #0056b3;
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 2em;
+}
+
+/* 日志表格容器 */
+.log-table-container {
+    max-height: 70vh; /* 限制最大高度，可根据屏幕调整 */
+    overflow-y: auto; /* 垂直滚动 */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    background-color: #fcfcfc;
+}
+
+/* 日志表格样式 */
+.log-table {
+    width: 100%;
+    border-collapse: collapse; /* 移除单元格间距 */
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85em; /* 稍微缩小字体 */
+}
+
+.log-table th,
+.log-table td {
+    border: 1px solid #eee;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top; /* 顶部对齐内容 */
+    word-break: break-word; /* 长单词和URL自动换行 */
+}
+
+.log-table th {
+    background-color: #e9ecef; /* 表头背景 */
+    font-weight: bold;
+    color: #343a40;
+    position: sticky; /* 使表头在滚动时固定 */
+    top: 0;
+    z-index: 1; /* 确保表头在内容上方 */
+}
+
+.log-table tbody tr:nth-child(even) {
+    background-color: #f8f9fa; /* 隔行换色 */
+}
+
+.log-table tbody tr:hover {
+    background-color: #e2e6ea; /* 悬停效果 */
+}
+
+/* 日志级别颜色 */
+.log-level-INFO {
+    color: #28a745; /* 绿色 */
+    font-weight: bold;
+}
+
+.log-level-WARNING {
+    color: #ffc107; /* 橙色 */
+    font-weight: bold;
+}
+
+.log-level-ERROR {
+    color: #dc3545; /* 红色 */
+    font-weight: bold;
+}
+
+.log-level-CRITICAL {
+    color: #6f42c1; /* 紫色，更严重 */
+    font-weight: bolder;
+}
+
+.log-level-DEBUG {
+    color: #6c757d; /* 灰色 */
+}
+
+/* 优化滚动条样式 */
+.log-table-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.log-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.log-table-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.log-table-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}

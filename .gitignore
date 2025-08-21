@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+venv/
+.env
+
+# Logs
+logs/
+
+# User Data
+tmp_user_data/

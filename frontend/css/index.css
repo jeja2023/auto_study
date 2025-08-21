@@ -1,0 +1,108 @@
+.credential-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    table-layout: fixed; /* 确保表格列宽按预期工作 */
+}
+
+.credential-table th,
+.credential-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    vertical-align: middle;
+    word-wrap: break-word; /* 允许长文本换行 */
+    box-sizing: border-box; /* 确保内边距和边框包含在元素的总尺寸内 */
+}
+
+.credential-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    white-space: nowrap; /* 防止表头文字换行 */
+    box-sizing: border-box; /* 确保内边距和边框包含在元素的总尺寸内 */
+}
+
+/* 针对特定列的宽度调整 */
+.credential-table th:nth-child(1) { width: 5%; } /* ID */
+.credential-table th:nth-child(2) { width: 17%; } /* 网站名称 */
+.credential-table th:nth-child(3) { width: 25%; } /* 网站URL */
+.credential-table th:nth-child(4) { width: 15%; } /* 用户名 */
+.credential-table th:nth-child(5) { width: 8%; } /* 密码 */
+.credential-table th:nth-child(6) { width: 30%; } /* 操作 */
+
+
+.credential-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.credential-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+.action-buttons {
+    display: flex; /* 使按钮在同一行 */
+    gap: 5px; /* 按钮之间的间距 */
+    flex-wrap: nowrap; /* 确保按钮始终在同一行 */
+    justify-content: flex-end; /* 按钮组右对齐 */
+    align-items: center; /* 按钮组垂直居中 */
+    width: 100%; /* 确保 div 占据其 td 的全部宽度，以便居中有效 */
+    height: 100%; /* 确保 div 占据其 td 的全部高度 */
+}
+
+/* 操作按钮的颜色 */
+.action-buttons .btn-view-password {
+    background-color: #007bff;
+    color: white;
+}
+.action-buttons .btn-view-password:hover {
+    background-color: #0056b3;
+}
+
+.action-buttons .btn-edit.main-action-button {
+    background-color: #ffc107;
+    color: white;
+}
+.action-buttons .btn-edit.main-action-button:hover {
+    background-color: #e0a800;
+}
+
+.action-buttons .btn-delete.main-action-button {
+    background-color: #dc3545;
+    color: white;
+}
+.action-buttons .btn-delete.main-action-button:hover {
+    background-color: #c82333;
+}
+
+.action-buttons .btn-start.main-action-button {
+    background-color: #28a745;
+    color: white;
+}
+.action-buttons .btn-start.main-action-button:hover {
+    background-color: #218838;
+}
+
+    .button-group {
+        display: flex;
+        justify-content: flex-end; /* 将按钮组推到右侧 */
+        margin-bottom: 20px;
+    }
+    .button-group button {
+        margin-left: 10px; /* 按钮之间的间距 */
+    }
+
+    /* 新增：列表为空时的样式 */
+    .empty-list-message {
+        text-align: center;
+        padding: 30px;
+        color: #6c757d;
+        font-size: 1.1em;
+    }
+
+    /* 表格样式 (仅定义本页特有的，避免与 common.css 冲突) */
+    .credential-table th:nth-child(1) { width: 5%; } /* ID */
+    .credential-table th:nth-child(2) { width: 17%; } /* 网站名称 */
+    .credential-table th:nth-child(3) { width: 25%; } /* 网站URL */
+    .credential-table th:nth-child(4) { width: 15%; } /* 用户名 */
+    .credential-table th:nth-child(5) { width: 8%; } /* 密码 */
+    .credential-table th:nth-child(6) { width: 30%; } /* 操作 */

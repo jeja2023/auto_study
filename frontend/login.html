@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统登录/注册</title>
+    <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+    <div class="container">
+        <h1>自动学习应用</h1>
+
+        <div class="auth-toggle">
+            <button id="showLogin" class="active">登录</button>
+            <button id="showRegister">注册</button>
+        </div>
+
+        <!-- 注册区块 -->
+        <div id="registerSection" class="auth-section" style="display: none;">
+            <h2>新用户注册</h2>
+            <div>
+                <label for="regUsername">用户名:</label>
+                <input type="text" id="regUsername" placeholder="请输入用户名">
+            </div>
+            <div>
+                <label for="regPhoneNumber">手机号码:</label>
+                <input type="text" id="regPhoneNumber" placeholder="请输入手机号码">
+            </div>
+            <div>
+                <label for="regPassword">密码:</label>
+                <input type="password" id="regPassword" placeholder="请输入密码">
+            </div>
+            <div>
+                <label for="regPasswordConfirm">确认密码:</label>
+                <input type="password" id="regPasswordConfirm" placeholder="请再次输入密码">
+            </div>
+            <button id="registerButton">注册</button>
+        </div>
+
+        <!-- 登录区块 -->
+        <div id="loginSection" class="auth-section">
+            <h2>用户登录</h2>
+            <div>
+                <label for="loginUsernameOrPhone">用户名或手机号码:</label>
+                <input type="text" id="loginUsernameOrPhone" placeholder="请输入用户名或手机号码">
+            </div>
+            <div>
+                <label for="loginPassword">密码:</label>
+                <input type="password" id="loginPassword" placeholder="请输入密码">
+            </div>
+            <button id="loginSystemButton">登录</button>
+        </div>
+        
+    </div>
+
+    <script src="/js/login.js"></script>
+</body>
+</html>
