@@ -60,26 +60,64 @@ function connectLogWebSocket() {
 
     logWebSocket.onopen = (event) => {
         console.log('日志 WebSocket 已连接。');
-        logDisplay.textContent = `WebSocket 连接成功，等待日志...\n`;
+        logDisplay.textContent = ''; // 清空所有旧日志
+        // logDisplay.textContent = `WebSocket 连接成功，等待日志...\n`; // 移除前端的欢迎消息
     };
 
     logWebSocket.onmessage = (event) => {
-        let logEntry = event.data;
-        logEntry = logEntry.replace(/^\[AutoWatcherRunner\](\[用户 \d+\])?\s*/, '').trim();
-        logDisplay.textContent += logEntry + '\n';
-        logDisplay.scrollTop = logDisplay.scrollHeight;
+        try {
+            const logData = JSON.parse(event.data);
+
+            // 定义要忽略的日志消息子字符串 (与后端log_config.py中的IGNORED_MESSAGES_SUBSTRINGS保持一致)
+            const IGNORED_MESSAGES_SUBSTRINGS = [
+                "系统日志 WebSocket", // 匹配连接和断开连接
+                "日志广播任务已启动",
+                "WebSocket连接已清理",
+                "Application startup: Initializing database",
+                "管理员用户 'admin' 已存在。",
+                "INFO:     connection open", // Uvicorn连接日志
+                "INFO:     connection closed" // Uvicorn连接日志
+            ];
+
+            // 过滤日志：如果消息包含任何一个忽略的子字符串，则跳过
+            for (const substring of IGNORED_MESSAGES_SUBSTRINGS) {
+                if (logData.message.includes(substring)) {
+                    return; // 忽略此日志
+                }
+            }
+
+            let logEntry = logData.message; // Extract the message field
+            
+            // 移除时间戳、模块名和日志级别前缀 (例如: "2025-08-21 19:33:27,308 - backend.main - INFO - ")
+            logEntry = logEntry.replace(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3} - [a-zA-Z0-9\._]+ - (INFO|WARNING|ERROR|DEBUG|CRITICAL) - /, '');
+            
+            // 移除 AutoWatcherRunner 特有前缀 (如果仍然存在)
+            logEntry = logEntry.replace(/^\s*\[AutoWatcherRunner\](\[用户 \d+\])?\s*/, '').trim();
+            
+            logDisplay.textContent += logEntry + '\n';
+            logDisplay.scrollTop = logDisplay.scrollHeight;
+        } catch (e) {
+            // 检查是否是Uvicorn的内部连接日志，如果是则忽略
+            const rawMessage = event.data.trim();
+            if (rawMessage.includes("INFO:     connection open") || rawMessage.includes("INFO:     connection closed")) {
+                console.log("忽略Uvicorn连接日志 (auto-learn):", rawMessage);
+                return; // 忽略这些日志
+            }
+            console.error("解析日志消息失败:", e, "原始数据:", event.data);
+            logDisplay.textContent += `[解析错误] ${event.data}\n`; // Fallback to raw data on error
+        }
     };
 
     logWebSocket.onerror = (event) => {
         console.error('日志 WebSocket 错误:', event);
         showStatusMessage('WebSocket 连接错误！请检查后端。' + event.message, true);
-        logDisplay.textContent += 'WebSocket 连接错误！请检查后端。\n';
+        // logDisplay.textContent += 'WebSocket 连接错误！请检查后端。\n';
     };
 
     logWebSocket.onclose = (event) => {
         console.log('日志 WebSocket 已关闭:', event);
         showStatusMessage('WebSocket 连接已关闭。' + event.reason, true);
-        logDisplay.textContent += 'WebSocket 连接已关闭。\n';
+        // logDisplay.textContent += 'WebSocket 连接已关闭。\n';
     };
 }
 

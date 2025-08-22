@@ -35,11 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // 级别
         const levelCell = row.insertCell();
         levelCell.textContent = logData.level;
-        levelCell.classList.add(`log-level-${logData.level}`); // 添加级别类以应用颜色
+        levelCell.classList.add(`log-level-${logData.level.toLowerCase()}`); // 添加级别类以应用颜色
 
         // 消息
         const messageCell = row.insertCell();
-        messageCell.textContent = logData.message;
+        let displayMessage = logData.message;
+        // 移除可能的特定前缀，如果存在的话
+        displayMessage = displayMessage.replace(/^\[AutoWatcherRunner\](\[用户 \d+\])?\s*/, '').trim();
+        messageCell.textContent = displayMessage;
 
         // 用户ID
         const userIdCell = row.insertCell();
@@ -60,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     socket.onopen = (event) => {
-        // console.log('WebSocket连接已建立，开始接收日志...');
         console.log('WebSocket连接已建立', event);
     };
 
@@ -69,22 +71,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const logData = JSON.parse(event.data); // 解析JSON数据
             addLogToTable(logData);
         } catch (e) {
+            // 检查是否是Uvicorn的内部连接日志，如果是则忽略
+            const rawMessage = event.data.trim();
+            if (rawMessage.includes("INFO:     connection open") || rawMessage.includes("INFO:     connection closed")) {
+                console.log("忽略Uvicorn连接日志:", rawMessage);
+                return; // 忽略这些日志
+            }
             console.error('解析日志数据失败:', e, event.data);
-            // 如果解析失败，仍然显示原始消息，但只显示在控制台
-            // const row = logTableBody.insertRow();
-            // const cell = row.insertCell();
-            // cell.colSpan = 5;
-            // cell.textContent = `[解析错误] ${event.data}`;
-            // cell.style.color = 'orange';
+            // 如果解析失败，可能是纯文本日志，直接显示为一条完整消息
+            const row = logTableBody.insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 6; 
+            cell.textContent = `[非JSON日志] ${event.data}`;
+            cell.style.color = 'orange';
         }
     };
 
     socket.onclose = (event) => {
-        const row = logTableBody.insertRow();
-        const cell = row.insertCell();
-        cell.colSpan = 6; // 跨越所有列
-        cell.textContent = `WebSocket连接已关闭。Code: ${event.code}, Reason: ${event.reason}`;
-        cell.style.color = 'orange';
         console.warn('WebSocket连接已关闭', event);
         if (event.code === 1008) { // 1008: 策略违反 (通常是认证失败)
             const authErrorRow = logTableBody.insertRow();
@@ -93,16 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
             authErrorCell.textContent = '认证失败，请重新登录。';
             authErrorCell.style.color = 'red';
             alert('认证失败，请重新登录！');
+            localStorage.removeItem('authToken'); // 清除无效的token
             window.location.href = '/login'; // 重定向到登录页面
         }
     };
 
     socket.onerror = (error) => {
-        const row = logTableBody.insertRow();
-        const cell = row.insertCell();
-        cell.colSpan = 6; // 跨越所有列
-        cell.textContent = 'WebSocket发生错误！请检查网络连接或后端服务。'
-        cell.style.color = 'red';
         console.error('WebSocket发生错误', error);
     };
 

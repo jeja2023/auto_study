@@ -171,7 +171,6 @@ def create_learning_task(
         study_hours=study_hours_to_save, # 保存学时
         current_progress=task.current_progress,
         is_completed=task.is_completed,
-        last_watched_video_index=task.last_watched_video_index,
     )
     db.add(db_task)
     db.commit()
@@ -184,13 +183,12 @@ def get_learning_tasks_by_credential_id_with_videos(db: Session, credential_id: 
         models.LearningTask.credential_id == credential_id
     ).options(joinedload(models.LearningTask.videos)).all()
 
-def update_learning_task_progress(db: Session, task_id: int, current_progress: str = None, is_completed: bool = None, last_watched_video_index: int = None, task_url: str = None, study_hours: str = None):
+def update_learning_task_progress(db: Session, task_id: int, current_progress: str = None, is_completed: bool = None, task_url: str = None, study_hours: str = None):
     """ 更新学习任务的进度和状态 """
     db_task = db.query(models.LearningTask).filter(models.LearningTask.id == task_id).first()
     if db_task:
         if current_progress is not None: db_task.current_progress = current_progress
         if is_completed is not None: db_task.is_completed = is_completed
-        if last_watched_video_index is not None: db_task.last_watched_video_index = last_watched_video_index
         if task_url is not None: db_task.task_url = task_url
         # 如果 study_hours 为 "0" 或空字符串，则设置为 None
         if study_hours is not None: db_task.study_hours = study_hours if study_hours and study_hours != "0" else None

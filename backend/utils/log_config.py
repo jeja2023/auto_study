@@ -16,6 +16,15 @@ os.makedirs(LOG_DIR, exist_ok=True)
 # 用于存储最近的日志条目，供WebSocket实时推送
 _websocket_log_queue = deque(maxlen=1000) # 最多保留1000条日志
 
+# 新增：定义要忽略的日志消息子字符串
+IGNORED_MESSAGES_SUBSTRINGS = [
+    "系统日志 WebSocket", # 匹配连接和断开连接
+    "日志广播任务已启动",
+    "WebSocket连接已清理",
+    "Application startup: Initializing database",
+    "管理员用户 'admin' 已存在。"
+]
+
 class DbLogHandler(logging.Handler):
     """ 自定义日志处理器，将日志写入数据库 """
     def emit(self, record):
@@ -24,9 +33,23 @@ class DbLogHandler(logging.Handler):
             return
 
         formatted_message = self.format(record) # 格式化消息
-        user_id = getattr(record, 'user_id', None) # 从 record 中获取 user_id
-        ip_address = getattr(record, 'ip_address', None) # 从 record 中获取 ip_address
-        username = getattr(record, 'username', None) # 从 record 中获取 username
+
+        # 【调试用】打印原始消息和格式化后的消息
+        # print(f"[DbLogHandler Debug] Raw Record Message: {record.message}")
+        # print(f"[DbLogHandler Debug] Formatted Message: {formatted_message}")
+        # print(f"[DbLogHandler Debug] Record Name: {record.name}")
+        # print(f"[DbLogHandler Debug] Record Level: {record.levelname}")
+
+        # 新增过滤逻辑：如果消息包含任何一个忽略的子字符串，则跳过
+        for substring in IGNORED_MESSAGES_SUBSTRINGS:
+            if substring in formatted_message:
+                # print(f"[DbLogHandler Debug] Filtered: {formatted_message}") # 调试用
+                return
+
+        # 从 record 中获取 extra 属性
+        user_id = getattr(record, 'user_id', None)
+        ip_address = getattr(record, 'ip_address', None)
+        username = getattr(record, 'username', None)
 
         db = SessionLocal()
         try:
@@ -40,17 +63,15 @@ class DbLogHandler(logging.Handler):
             db.commit()
             
             # 同时将日志添加到队列，供WebSocket推送，发送结构化数据
-            # 只有当日志来源于自动化学习模块时才添加到WebSocket队列
-            if record.name.startswith('backend.utils.auto_watcher_runner'):
-                log_data = {
-                    "timestamp": record.asctime, # 使用格式化后的时间
-                    "level": record.levelname,
-                    "message": formatted_message,
-                    "user_id": user_id,
-                    "username": username, # 添加 username
-                    "ip_address": ip_address
-                }
-                _websocket_log_queue.append(log_data)
+            log_data = {
+                "timestamp": record.asctime.split(',')[0], # 移除毫秒
+                "level": record.levelname,
+                "message": formatted_message, # 使用格式化后的消息
+                "user_id": user_id,
+                "username": username,
+                "ip_address": ip_address
+            }
+            _websocket_log_queue.append(log_data)
 
         except Exception as e:
             # 如果数据库写入失败，打印错误到控制台，但不阻止其他日志处理器工作

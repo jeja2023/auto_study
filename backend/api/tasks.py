@@ -9,7 +9,7 @@ from backend import crud, schemas, models # 导入 models
 from backend.database import get_db, SessionLocal # 导入 SessionLocal
 from backend.utils import auto_watcher_runner as auto_watcher_utils
 from backend.auth import get_current_system_user, verify_access_token # 导入 verify_access_token
-from backend.schemas import SystemUserOut
+from backend.schemas import SystemUserOut, LaunchWebRequest
 from backend.utils.log_config import _websocket_log_queue # 导入全局日志队列
 from backend.context import RequestContext, get_request_context # 导入 RequestContext 和 get_request_context
 
@@ -31,21 +31,22 @@ async def broadcast_logs():
             # 检查是否有新的日志
             if len(_websocket_log_queue) > last_processed_index:
                 new_logs = list(_websocket_log_queue)[last_processed_index:]
-                # 反转新日志的顺序，确保最新的日志最先发送
-                for log_data in reversed(new_logs): # log_entry 现在是字典
-                    for websocket in list(active_websocket_connections): # 迭代副本，防止在迭代时修改
+                for log_data in new_logs:
+                    for websocket in list(active_websocket_connections):
                         try:
                             await websocket.send_text(json.dumps(log_data)) # 发送 JSON 字符串
                         except WebSocketDisconnect:
-                            # 如果客户端断开，从列表中移除
-                            logger.warning("[WebSocket Broadcaster] 检测到断开连接，移除WebSocket。")
-                            active_websocket_connections.remove(websocket)
-                        except Exception as e:
-                            logger.error(f"[WebSocket Broadcaster] 发送日志时发生错误: {e}")
+                            logger.warning(
+                                "[WebSocket Broadcaster] 检测到断开连接，移除WebSocket。",
+                                extra={"user_id": log_data.get('user_id'), "username": log_data.get('username'), "ip_address": log_data.get('ip_address')}
+                            )
                 last_processed_index = len(_websocket_log_queue)
             await asyncio.sleep(0.1) # 短暂休眠，避免CPU空转
         except Exception as e:
-            logger.error(f"[WebSocket Broadcaster] 发生未预期的错误: {e}")
+            logger.error(
+                f"[WebSocket Broadcaster] 发生未预期的错误: {e}",
+                extra={"user_id": None, "username": None, "ip_address": None} # 广播任务的通用错误，无法可靠获取用户上下文
+            )
             await asyncio.sleep(1) # 错误时休眠长一点
 
 @router.websocket("/ws/logs")
@@ -62,10 +63,18 @@ async def websocket_endpoint(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    user = None
+    user_id = None
+    username = None
+    ip_address = None # 初始化
+
+    # 将整个逻辑包裹在一个大的 try-except-finally 块中
     try:
+        # 尝试从 WebSocket scope 获取 IP
+        if "client" in websocket.scope and websocket.scope["client"] is not None:
+            ip_address = websocket.scope["client"][0] # (host, port)
         token_data = verify_access_token(token, credentials_exception) # 验证 token
         # 尝试根据用户名或手机号找到用户
-        user = None
         if token_data.learning_username: # 将 username 修改为 learning_username
             user = crud.get_system_user_by_username(db, username=token_data.learning_username) # 将 username 修改为 learning_username
         elif token_data.phone_number:
@@ -74,29 +83,38 @@ async def websocket_endpoint(
         if user is None:
             raise credentials_exception
         
+        user_id = user.id
+        username = user.username
+        
         # 将当前WebSocket添加到活跃连接列表
         active_websocket_connections.append(websocket)
-        logging.getLogger(__name__).info(f"用户 {user.username} 已连接到系统日志 WebSocket。总连接数: {len(active_websocket_connections)}")
+        logging.getLogger(__name__).info(
+            f"用户 {user.username} 已连接到系统日志 WebSocket。总连接数: {len(active_websocket_connections)}",
+            extra={"user_id": user_id, "username": username, "ip_address": ip_address}
+        )
 
         # 启动日志广播任务（如果尚未启动）
         global log_broadcast_task
         if log_broadcast_task is None or log_broadcast_task.done():
             log_broadcast_task = asyncio.create_task(broadcast_logs())
-            logging.getLogger(__name__).info("系统日志广播任务已启动。")
+            logging.getLogger(__name__).info(
+                "系统日志广播任务已启动。",
+                extra={"user_id": user_id, "username": username, "ip_address": ip_address}
+            )
 
         # 发送历史日志（从数据库获取）
         # 可以限制条数，例如最近100条
-        historical_logs = db.query(models.LogEntry).order_by(models.LogEntry.timestamp.desc()).limit(100).all()
-        for log_entry_obj in historical_logs: # 反转顺序，以便按时间正序显示，log_entry_obj是模型实例
-            log_data = {
-                "timestamp": log_entry_obj.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-                "level": log_entry_obj.level,
-                "message": log_entry_obj.message,
-                "user_id": log_entry_obj.user_id,
-                "username": log_entry_obj.user.username if log_entry_obj.user else None, # 添加用户名
-                "ip_address": log_entry_obj.ip_address
-            }
-            await websocket.send_text(json.dumps(log_data)) # 发送 JSON 字符串
+        # historical_logs = db.query(models.LogEntry).order_by(models.LogEntry.timestamp.asc()).limit(100).all()
+        # for log_entry_obj in historical_logs:
+        #     log_data = {
+        #         "timestamp": log_entry_obj.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+        #         "level": log_entry_obj.level,
+        #         "message": log_entry_obj.message, # 直接使用数据库中存储的消息，因为它现在应该已经是预格式化好的
+        #         "user_id": log_entry_obj.user_id,
+        #         "username": log_entry_obj.user.username if log_entry_obj.user else None,
+        #         "ip_address": log_entry_obj.ip_address
+        #     }
+        #     await websocket.send_text(json.dumps(log_data)) # 发送 JSON 字符串
 
         # 保持连接活跃，直到客户端断开
         while True:
@@ -104,13 +122,22 @@ async def websocket_endpoint(
             await websocket.receive_text() # 只是为了保持连接，实际不处理接收到的消息
 
     except HTTPException as e:
-        logging.getLogger(__name__).warning(f"日志WebSocket认证失败: {e.detail}")
+        logging.getLogger(__name__).warning(
+            f"日志WebSocket认证失败: {e.detail}",
+            extra={"user_id": user_id, "username": username, "ip_address": ip_address} # 认证失败时尝试提供已有信息
+        )
         await websocket.send_text(f"认证失败: {e.detail}")
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION) # 1008 表示策略违反，例如认证失败
     except WebSocketDisconnect:
-        logging.getLogger(__name__).info(f"用户 {user.username if 'user' in locals() else '未知'} 已断开系统日志 WebSocket 连接。总连接数: {len(active_websocket_connections)}")
+        logging.getLogger(__name__).info(
+            f"用户 {user.username if 'user' in locals() else '未知'} 已断开系统日志 WebSocket 连接。总连接数: {len(active_websocket_connections)}",
+            extra={"user_id": user_id, "username": username, "ip_address": ip_address}
+        )
     except Exception as e:
-        logging.getLogger(__name__).error(f"日志WebSocket发生错误: {e}")
+        logging.getLogger(__name__).error(
+            f"日志WebSocket发生错误: {e}",
+            extra={"user_id": user_id, "username": username, "ip_address": ip_address}
+        )
         # 尝试发送错误消息，但连接可能已断开
         try:
             await websocket.send_text(f"内部错误: {e}")
@@ -120,7 +147,10 @@ async def websocket_endpoint(
         # 从活跃连接列表中移除
         if websocket in active_websocket_connections:
             active_websocket_connections.remove(websocket)
-        logging.getLogger(__name__).info(f"WebSocket连接已清理。当前活跃连接数: {len(active_websocket_connections)}")
+        logging.getLogger(__name__).info(
+            f"WebSocket连接已清理。当前活跃连接数: {len(active_websocket_connections)}",
+            extra={"user_id": user_id, "username": username, "ip_address": ip_address}
+        )
 
 @router.get("/test")
 async def test_tasks_router():
@@ -129,6 +159,7 @@ async def test_tasks_router():
 @router.post("/launch-web-for-login/{credential_id}") # 新增：通过凭据ID启动自动化流程
 async def launch_web_for_login(
     credential_id: int,
+    request: schemas.LaunchWebRequest, # 使用新的请求体模型
     background_tasks: BackgroundTasks,
     request_context: RequestContext = Depends(get_request_context), # 获取请求上下文
     db: Session = Depends(get_db)
@@ -161,9 +192,9 @@ async def launch_web_for_login(
             credential.website_url,
             credential.learning_username,
             credential.learning_password,
-            # headless=True, # 根据需求决定是否无头模式
-            username, # 传入 username
-            ip_address
+            headless=request.headless, # 从请求体中获取headless状态
+            ip_address=ip_address, # 明确作为关键字参数
+            system_username=username # 明确作为关键字参数
         )
         auto_watcher_utils.console_log(f"已将启动浏览器任务添加到后台。", user_id, username, ip_address, level=logging.INFO)
         return {"message": "浏览器启动任务已在后台启动。"}
@@ -180,7 +211,7 @@ async def start_watching(
 ):
     """ 启动视频观看自动化任务，使用当前系统用户最近一个已登录的浏览器会话。 """
     user_id = request_context.user_id
-    username = request_context.username # 获取用户名
+    system_username = request_context.username # 获取系统用户名
     ip_address = request_context.ip_address
 
     # auto_watcher_utils.console_log("Received start-watching request!") # 已经有下面的更详细日志，这里可以删除
@@ -188,14 +219,14 @@ async def start_watching(
     # 获取用户的学习网站凭据，以获取固定的视频列表URL
     credential = crud.get_learning_website_credential_by_user(db, system_user_id=user_id)
     if not credential or not credential.video_list_url:
-        auto_watcher_utils.console_log(f"没有找到学习网站凭据或未设置视频列表URL。", user_id, username, ip_address, level=logging.WARNING)
+        auto_watcher_utils.console_log(f"没有找到学习网站凭据或未设置视频列表URL。", user_id, system_username, ip_address, level=logging.WARNING)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="没有找到学习网站凭据或未设置视频列表URL。请先在凭据设置页面添加并设置。")
 
     # 从活跃的浏览器实例中获取当前会话的 cookies
     # 这里不再使用 cookies，而是直接传递 page 实例
     page = auto_watcher_utils._active_browser_pages.get(user_id)
     if not page:
-        auto_watcher_utils.console_log(f"没有找到活跃的浏览器会话。", user_id, username, ip_address, level=logging.WARNING)
+        auto_watcher_utils.console_log(f"没有找到活跃的浏览器会话。", user_id, system_username, ip_address, level=logging.WARNING)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="没有找到活跃的浏览器会话。请先点击‘打开学习网站’按钮。") # 修正错误消息
 
     # 在后台启动视频观看任务，不阻塞 FastAPI 响应
@@ -205,7 +236,7 @@ async def start_watching(
         page, # 传递 page 实例
         credential.id, # 传递凭据ID
         ip_address, # 传递 ip_address
-        username # 传递 username
+        system_username # 传递 system_username
     )
 
     return {"message": "学习任务已在后台启动。"}

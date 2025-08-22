@@ -30,7 +30,6 @@ class LearningTaskBase(BaseModel):
     task_url: Optional[str] = None # 进入该任务后的视频列表URL
     current_progress: Optional[str] = "0%" # 任务整体学习进度，例如“0%”, “50%”, “100%”
     is_completed: bool = False
-    last_watched_video_index: int = 0
     study_hours: Optional[str] = None # 新增学时字段
 
     class Config:
@@ -120,3 +119,7 @@ class SystemUserCredentials(BaseModel):
 # --- 自动化相关 Schema ---
 class StartWatchingRequest(BaseModel):
     url: str # 自动化学习时提供网站 URL
+
+# 新增：用于从前端启动浏览器时接收headless参数
+class LaunchWebRequest(BaseModel):
+    headless: bool = False # 默认为False，即有头模式

@@ -48,6 +48,29 @@ async function authenticatedFetch(url, options) {
     return response;
 }
 
+// 辅助函数：从任务名称中移除状态后缀
+function cleanTaskName(name) {
+    let cleanedName = name;
+    if (cleanedName.endsWith(" 未学习")) {
+        cleanedName = cleanedName.slice(0, -5);
+    }
+    if (cleanedName.endsWith(" 待考试")) {
+        cleanedName = cleanedName.slice(0, -5);
+    }
+    return cleanedName;
+}
+
+// 辅助函数：根据任务进度获取任务状态显示
+function getTaskStatusDisplay(task) {
+    if (task.is_completed) {
+        return "已完成";
+    } else if (parseFloat(task.current_progress) > 0) {
+        return "正在学习";
+    } else {
+        return "待学习";
+    }
+}
+
 // 获取并显示任务详情和视频列表
 async function fetchAndDisplayTaskDetails(credentialId) {
     try {
@@ -84,7 +107,7 @@ async function fetchAndDisplayTaskDetails(credentialId) {
                 const taskSummaryRow = videosListBody.insertRow();
                 taskSummaryRow.innerHTML = `
                     <td colspan="5" class="collapsible-task-header" data-task-id="${task.id}" style="font-weight: bold; background-color: #f2f2f2; padding: 10px; cursor: pointer;">
-                        <span class="toggle-icon">[-]</span> 任务${task.id}: ${task.task_name} - 进度: ${task.current_progress} ${task.study_hours && task.study_hours !== '0小时' ? `- 学时: ${task.study_hours}` : ''} - 上次观看视频索引: ${task.last_watched_video_index || 0}
+                        <span class="toggle-icon">[+]</span> 任务${task.id}: ${cleanTaskName(task.task_name)} - 学时: ${task.study_hours && task.study_hours !== '0小时' ? task.study_hours : '0小时'} - 状态: ${getTaskStatusDisplay(task)}
                     </td>
                 `;
 
@@ -95,6 +118,7 @@ async function fetchAndDisplayTaskDetails(credentialId) {
                     task.videos.forEach((video, index) => {
                         const row = videosListBody.insertRow();
                         row.classList.add('task-video-item', `task-${task.id}-videos`); // 添加类用于控制显示/隐藏
+                        row.style.display = 'none'; // 默认隐藏
                         row.innerHTML = `
                             <td>${index + 1}</td>
                             <td>${video.video_title}</td>
@@ -106,6 +130,7 @@ async function fetchAndDisplayTaskDetails(credentialId) {
                 } else {
                     const row = videosListBody.insertRow();
                     row.classList.add('task-video-item', `task-${task.id}-videos`); // 确保无视频行也被隐藏/显示
+                    row.style.display = 'none'; // 默认隐藏
                     row.innerHTML = `<td colspan="5" style="text-align: center;">该任务暂无视频。</td>`; /* colspan 调整为5 */
                 }
             });

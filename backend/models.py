@@ -43,7 +43,6 @@ class LearningTask(Base):
     task_url = Column(String(255), nullable=True) # 进入该任务后的视频列表URL
     current_progress = Column(String(50), default="0.00%") # 任务整体学习进度，例如“0%”, “50%”, “100%”
     is_completed = Column(Boolean, default=False)
-    last_watched_video_index = Column(Integer, default=0) # 记录上次学到哪个视频
     study_hours = Column(String(50), nullable=True) # 新增学时字段
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

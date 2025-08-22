@@ -21,40 +21,52 @@ _active_browser_pages = {}
 _stop_events = {}
 
 # 定义一个简单的日志函数，用于替代GUI中的log
-def console_log(message, user_id=None, username=None, ip_address=None, level=logging.INFO):
+def console_log(message_content, user_id=None, username=None, ip_address=None, level=logging.INFO):
     """
-    替代GUI中的log，将消息发送到主日志系统。
+    替代GUI中的log，将消息发送到主日志系统，并预格式化消息内容。
     """
-    extra_data = {}
-    if user_id is not None:
-        extra_data['user_id'] = user_id
-    if username is not None:
-        extra_data['username'] = username
-    if ip_address is not None: # 添加ip_address到extra_data
-        extra_data['ip_address'] = ip_address
+    # 统一格式化消息，即使没有用户信息，也保持前缀一致
+    user_prefix = ""
+    if user_id is not None and username is not None:
+        user_prefix = f"用户 {user_id} ({username})："
+    elif user_id is not None:
+        user_prefix = f"用户 {user_id}："
+    elif username is not None:
+        user_prefix = f"用户 ({username})："
 
-    # 打印 extra_data 以便调试
-    # print(f"[DEBUG] console_log extra_data: {extra_data}")
+    formatted_message = f"{user_prefix}{message_content}"
 
-    if extra_data:
-        logger.log(level, message, extra=extra_data)
-    else:
-        logger.log(level, message)
+    extra_data = {
+        'user_id': user_id,
+        'username': username,
+        'ip_address': ip_address
+    }
 
-async def send_log_to_queue(message: str, user_id: Optional[int] = None, username: Optional[str] = None, ip_address: Optional[str] = None, level=logging.INFO):
-    """ 将日志消息发送到主日志系统，以便被DbLogHandler捕获并推送到WebSocket队列。 """
-    extra_data = {}
-    if user_id is not None:
-        extra_data['user_id'] = user_id
-    if username is not None:
-        extra_data['username'] = username
-    if ip_address is not None:
-        extra_data['ip_address'] = ip_address
+    logger.log(level, formatted_message, extra=extra_data)
 
-    if extra_data:
-        logger.log(level, message, extra=extra_data)
-    else:
-        logger.log(level, message)
+async def send_log_to_queue(message_content: str, user_id: Optional[int] = None, username: Optional[str] = None, ip_address: Optional[str] = None, level=logging.INFO):
+    """
+    将日志消息发送到主日志系统，以便被DbLogHandler捕获并推送到WebSocket队列。
+    预格式化消息内容。
+    """
+    # 统一格式化消息，即使没有用户信息，也保持前缀一致
+    user_prefix = ""
+    if user_id is not None and username is not None:
+        user_prefix = f"用户 {user_id} ({username})："
+    elif user_id is not None:
+        user_prefix = f"用户 {user_id}："
+    elif username is not None:
+        user_prefix = f"用户 ({username})："
+
+    formatted_message = f"{user_prefix}{message_content}"
+
+    extra_data = {
+        'user_id': user_id,
+        'username': username,
+        'ip_address': ip_address
+    }
+
+    logger.log(level, formatted_message, extra=extra_data)
 
 def format_seconds_to_hms(seconds: int, threshold_seconds: int = 60) -> str:
     """
@@ -263,6 +275,28 @@ async def process_single_task_videos(user_id: int, page, learning_task, stop_eve
                 console_log(f"浏览器或操作失败，监控中断: {e}", user_id, username, ip_address, level=logging.ERROR)
                 is_video_finished = True; break
             except ElementNotFoundError:
+                # 记录当前页面信息以帮助诊断
+                console_log(f"在当前页面未找到 <video> 播放器，URL: {page.url}, Title: {page.title}，尝试查找iframe...", user_id, username, ip_address, level=logging.WARNING)
+
+                # 尝试切换到iframe并重新查找视频播放器
+                try:
+                    iframe_ele = page.ele('tag:iframe', timeout=3) # 尝试查找iframe
+                    if iframe_ele:
+                        console_log(f"检测到iframe，尝试切换到iframe并重新查找视频播放器...", user_id, username, ip_address, level=logging.INFO)
+                        page.change_page(iframe_ele) # 切换到iframe
+                        # 再次尝试查找视频播放器
+                        video_player = page.ele('tag:video', timeout=5) # 再次查找
+                        if video_player:
+                            console_log(f"在iframe中找到了视频播放器。", user_id, username, ip_address, level=logging.INFO)
+                            # 如果找到了，就跳出 ElementNotFoundError 异常处理，继续外层循环
+                            continue 
+                        else:
+                            console_log(f"切换到iframe后仍未找到视频播放器。", user_id, username, ip_address, level=logging.INFO)
+                    else:
+                        console_log(f"未找到iframe。", user_id, username, ip_address, level=logging.INFO)
+                except Exception as iframe_e:
+                    console_log(f"尝试切换iframe时发生错误: {iframe_e}", user_id, username, ip_address, level=logging.WARNING)
+
                 console_log("在当前页面未找到 <video> 播放器，可能页面还未加载完成，重试中...", user_id, username, ip_address, level=logging.WARNING)
                 sleep_task = asyncio.create_task(asyncio.sleep(5))
                 stop_task = asyncio.create_task(stop_event.wait())
@@ -283,18 +317,20 @@ async def process_single_task_videos(user_id: int, page, learning_task, stop_eve
             return False
     return True
 
-async def launch_browser_for_user_login(user_id: int, url: str, username: Optional[str] = None, password: Optional[str] = None, headless: bool = False, ip_address: Optional[str] = None):
-    console_log(f"正在启动浏览器进行登录... {'(无头模式)' if headless else '(有头模式)'}", user_id, username, ip_address, level=logging.INFO)
+async def launch_browser_for_user_login(user_id: int, url: str, learning_username: Optional[str] = None, learning_password: Optional[str] = None, headless: bool = False, ip_address: Optional[str] = None, system_username: Optional[str] = None):
+    console_log(f"正在启动浏览器进行登录... {'(无头模式)' if headless else '(有头模式)'}", user_id, system_username, ip_address, level=logging.INFO)
     # 如果该用户已有活跃的浏览器实例，先关闭它
     if user_id in _active_browser_pages and _active_browser_pages[user_id]:
         try:
             _active_browser_pages[user_id].quit()
-            console_log(f"已关闭旧的浏览器实例。", user_id, username, ip_address, level=logging.INFO)
+            console_log(f"已关闭旧的浏览器实例。", user_id, system_username, ip_address, level=logging.INFO)
         except Exception as e:
-            console_log(f"关闭旧浏览器实例时出错: {e}", user_id, username, ip_address, level=logging.ERROR)
+            console_log(f"关闭旧浏览器实例时出错: {e}", user_id, system_username, ip_address, level=logging.ERROR)
             
     # 创建 ChromiumOptions 实例
     options = ChromiumOptions()
+    # 调试日志：打印 headless 参数的实际值
+    console_log(f"DrissionPage 初始化，headless 参数为: {headless}", user_id, system_username, ip_address, level=logging.DEBUG)
     # 根据 headless 参数设置无头模式
     options.headless(headless)
     # 设置临时用户数据路径，确保每次运行环境干净
@@ -304,39 +340,39 @@ async def launch_browser_for_user_login(user_id: int, url: str, username: Option
         # 将配置好的 options 传递给 ChromiumPage 构造函数
         page = ChromiumPage(options) # 创建新的浏览器实例，并传入配置好的 options
         page.set.auto_handle_alert()
-        console_log(f"自动弹窗处理已开启。", user_id, username, ip_address, level=logging.INFO)
+        console_log(f"自动弹窗处理已开启。", user_id, system_username, ip_address, level=logging.INFO)
         page.set.window.max()
         
         # 确保URL包含协议头
         if not url.startswith("http://") and not url.startswith("https://"):
             url = "https://" + url
-            console_log(f"URL缺少协议，已自动添加 https://", user_id, username, ip_address, level=logging.INFO)
+            console_log(f"URL缺少协议，已自动添加 https://", user_id, system_username, ip_address, level=logging.INFO)
             
         page.get(url)
-        console_log(f"浏览器启动成功！已打开登录页面: {url}", user_id, username, ip_address, level=logging.INFO)
+        console_log(f"浏览器启动成功！已打开登录页面: {url}", user_id, system_username, ip_address, level=logging.INFO)
         
         # 尝试自动登录和后续导航
-        if username and password:
-            console_log(f"尝试自动登录学习网站...", user_id, username, ip_address, level=logging.INFO)
+        if learning_username and learning_password:
+            console_log(f"尝试自动登录学习网站...", user_id, system_username, ip_address, level=logging.INFO)
             await asyncio.sleep(2) # 等待页面完全加载
             
             try:
                 # 填写用户名
                 username_input = page.ele(f'xpath://input[@placeholder="请输入账号（身份证号）"]')
                 if username_input:
-                    username_input.input(username)
-                    console_log(f"已填写用户名。", user_id, username, ip_address, level=logging.INFO)
+                    username_input.input(learning_username)
+                    console_log(f"已填写用户名。", user_id, system_username, ip_address, level=logging.INFO)
                 else:
-                    console_log(f"未找到用户名输入框。", user_id, username, ip_address, level=logging.WARNING)
+                    console_log(f"未找到用户名输入框。", user_id, system_username, ip_address, level=logging.WARNING)
                     raise ElementNotFoundError("用户名输入框未找到")
 
                 # 填写密码
                 password_input = page.ele(f'xpath://input[@placeholder="请输入密码" and @type="password"]')
                 if password_input:
-                    password_input.input(password)
-                    console_log(f"已填写密码。", user_id, username, ip_address, level=logging.INFO)
+                    password_input.input(learning_password)
+                    console_log(f"已填写密码。", user_id, system_username, ip_address, level=logging.INFO)
                 else:
-                    console_log(f"未找到密码输入框。", user_id, username, ip_address, level=logging.WARNING)
+                    console_log(f"未找到密码输入框。", user_id, system_username, ip_address, level=logging.WARNING)
                     raise ElementNotFoundError("密码输入框未找到")
                 
                 await asyncio.sleep(1) # 等待输入完成
@@ -348,11 +384,11 @@ async def launch_browser_for_user_login(user_id: int, url: str, username: Option
                     is_checked = agree_checkbox.run_js('return this.checked;')
                     if not is_checked:
                         agree_checkbox.click()
-                        console_log(f"已点击‘阅读并同意’复选框。", user_id, username, ip_address, level=logging.INFO)
+                        console_log(f"已点击‘阅读并同意’复选框。", user_id, system_username, ip_address, level=logging.INFO)
                     else:
-                        console_log(f"‘阅读并同意’复选框已选中。", user_id, username, ip_address, level=logging.INFO)
+                        console_log(f"‘阅读并同意’复选框已选中。", user_id, system_username, ip_address, level=logging.INFO)
                 else:
-                    console_log(f"未找到‘阅读并同意’复选框。", user_id, username, ip_address, level=logging.WARNING)
+                    console_log(f"未找到‘阅读并同意’复选框。", user_id, system_username, ip_address, level=logging.WARNING)
                     # 不强制要求找到，因为有些页面可能没有或已默认选中
 
                 await asyncio.sleep(1) # 等待点击完成
@@ -361,48 +397,48 @@ async def launch_browser_for_user_login(user_id: int, url: str, username: Option
                 login_button = page.ele(f'xpath://*[@id="app"]/div[1]/div[2]/div[1]/div[2]/div[1]/div[5]')
                 if login_button:
                     login_button.click()
-                    console_log(f"已点击登录按钮。", user_id, username, ip_address, level=logging.INFO)
+                    console_log(f"已点击登录按钮。", user_id, system_username, ip_address, level=logging.INFO)
                     # 等待页面加载，或者等待某个成功登录后的标志性元素出现
                     try:
                         # 等待'Personage' div出现，作为成功登录的标志
                         page.ele(f'xpath://div[@data-v-a2cdffec and @class="Personage"]', timeout=15)
                         # console_log(f"成功登录并进入个人空间页面。", user_id) # 将此行移动到弹窗处理之后
                     except ElementNotFoundError:
-                        console_log(f"登录后未找到个人空间页面标志元素，可能登录失败或页面加载异常。", user_id, username, ip_address, level=logging.WARNING)
+                        console_log(f"登录后未找到个人空间页面标志元素，可能登录失败或页面加载异常。", user_id, system_username, ip_address, level=logging.WARNING)
                         raise ElementNotFoundError("登录后个人空间页面标志元素未找到") # 抛出异常以终止当前流程
 
                     await asyncio.sleep(3) # 额外等待，确保页面完全加载或重定向到个人空间页
 
                 else:
-                    console_log(f"未找到登录按钮。", user_id, username, ip_address, level=logging.WARNING)
+                    console_log(f"未找到登录按钮。", user_id, system_username, ip_address, level=logging.WARNING)
                     raise ElementNotFoundError("登录按钮未找到")
 
                 # 尝试关闭登录后可能出现的弹窗
-                console_log(f"尝试关闭登录后弹窗...", user_id, username, ip_address, level=logging.INFO)
+                console_log(f"尝试关闭登录后弹窗...", user_id, system_username, ip_address, level=logging.INFO)
                 try:
                     popup_close_button = page.ele(f'xpath:/html/body/div[3]/div/div[2]/div/div[2]/div[3]/div/button', timeout=3) # 设置一个较短的超时时间
                     if popup_close_button:
                         popup_close_button.click()
-                        console_log(f"成功关闭登录后弹窗。", user_id, username, ip_address, level=logging.INFO)
+                        console_log(f"成功关闭登录后弹窗。", user_id, system_username, ip_address, level=logging.INFO)
                     else:
-                        console_log(f"未找到登录后弹窗的关闭按钮，可能没有弹窗。", user_id, username, ip_address, level=logging.INFO)
+                        console_log(f"未找到登录后弹窗的关闭按钮，可能没有弹窗。", user_id, system_username, ip_address, level=logging.INFO)
                 except Exception as e:
                     # 如果弹窗关闭失败，不影响后续操作，只记录日志
-                    console_log(f"关闭登录后弹窗时发生错误或未找到弹窗: {e}", user_id, username, ip_address, level=logging.WARNING)
+                    console_log(f"关闭登录后弹窗时发生错误或未找到弹窗: {e}", user_id, system_username, ip_address, level=logging.WARNING)
 
                 # 确认登录并进入个人空间页面
-                console_log(f"成功登录并进入个人空间页面。", user_id, username, ip_address, level=logging.INFO) # 移动到此处
+                console_log(f"成功登录并进入个人空间页面。", user_id, system_username, ip_address, level=logging.INFO) # 移动到此处
 
                 await asyncio.sleep(3) # 额外等待，确保页面完全加载或重定向到个人空间页
 
                 # 点击“专业技术人员继续教育”按钮
-                console_log(f"尝试点击‘专业技术人员继续教育’按钮...", user_id, username, ip_address, level=logging.INFO)
+                console_log(f"尝试点击‘专业技术人员继续教育’按钮...", user_id, system_username, ip_address, level=logging.INFO)
                 # 等待按钮出现，最多等待10秒
-                professional_button = page.ele(f'xpath://*[@id="app"]/div[1]/div[2]/div[2]/div/div[2]/div[1]/label[1]', timeout=10) # 增加 timeout 到 10秒
+                professional_button = page.ele(f'xpath://label[text()=\'专业技术人员继续教育\']', timeout=10) # 使用更精确的XPath
                 if professional_button:
-                    professional_button.click()
-                    console_log(f"成功点击‘专业技术人员继续教育’按钮。", user_id, username, ip_address, level=logging.INFO)
-                    await asyncio.sleep(3) # 等待页面跳转到课程列表页
+                    professional_button.wait.click() # 使用 wait.click() 确保元素可点击
+                    console_log(f"成功点击‘专业技术人员继续教育’按钮。", user_id, system_username, ip_address, level=logging.INFO)
+                    await asyncio.sleep(5) # 增加等待时间，确保页面跳转到课程列表页
                     
                     # 移除此处保存视频列表URL的逻辑，因为这里还是课程类型页，且URL保存已由crud.get_or_create_learning_task处理
                     # current_video_list_url = page.url
@@ -410,14 +446,14 @@ async def launch_browser_for_user_login(user_id: int, url: str, username: Option
                     #     crud.update_learning_website_credential_video_list_url(db, user_id, current_video_list_url)
                     #     console_log(f"已保存课程列表URL: {current_video_list_url} 到数据库。", user_id)
                 else:
-                    console_log(f"未找到‘专业技术人员继续教育’按钮。", user_id, username, ip_address, level=logging.WARNING)
+                    console_log(f"未找到‘专业技术人员继续教育’按钮。", user_id, system_username, ip_address, level=logging.WARNING)
                     raise ElementNotFoundError("‘专业技术人员继续教育’按钮未找到")
 
             except ElementNotFoundError as e:
-                console_log(f"自动登录或初始导航失败，关键元素未找到: {e}", user_id, username, ip_address, level=logging.WARNING)
+                console_log(f"自动登录或初始导航失败，关键元素未找到: {e}", user_id, system_username, ip_address, level=logging.WARNING)
                 # 即使自动登录失败，也继续存储页面实例，等待用户手动操作
             except Exception as e:
-                console_log(f"自动登录或初始导航时发生未知错误: {e}", user_id, username, ip_address, level=logging.ERROR)
+                console_log(f"自动登录或初始导航时发生未知错误: {e}", user_id, system_username, ip_address, level=logging.ERROR)
                 # 即使自动登录失败，也继续存储页面实例，等待用户手动操作
             
             # 自动登录和初始导航成功，存储活跃的页面实例并返回
@@ -425,7 +461,7 @@ async def launch_browser_for_user_login(user_id: int, url: str, username: Option
             return page # 返回活跃的页面实例
         
     except Exception as e:
-        console_log(f"浏览器启动失败: {e}", user_id, username, ip_address, level=logging.ERROR)
+        console_log(f"浏览器启动失败: {e}", user_id, system_username, ip_address, level=logging.ERROR)
         if user_id in _active_browser_pages: # 清理失败的实例
             del _active_browser_pages[user_id]
         raise
@@ -493,6 +529,9 @@ async def run_auto_watcher(user_id: int, page: ChromiumPage, credential_id: int,
         console_log("等待页面加载完成...", user_id, username, ip_address, level=logging.INFO)
         await asyncio.sleep(5) # 等待页面加载
         
+        # 在进入课程类型循环之前，保存当前的主任务列表页面的URL
+        main_task_list_url = page.url
+
         # 定义课程类型切换按钮的 XPath 列表
         course_type_buttons_info = [
             {
@@ -576,6 +615,9 @@ async def run_auto_watcher(user_id: int, page: ChromiumPage, credential_id: int,
                                 # 修正：移除标题末尾的“未学习”标记
                                 if task_title.endswith(" 未学习"):
                                     task_title = task_title[:-len(" 未学习")]
+                                # 新增：移除标题末尾的“ 待考试”标记
+                                if task_title.endswith(" 待考试"):
+                                    task_title = task_title[:-len(" 待考试")]
                                 task_progress = task_progress_ele.text.strip() if task_progress_ele else "0.00%"
                                 task_hours = task_hours_ele.text.strip() if task_hours_ele else "未知"
 
@@ -639,8 +681,21 @@ async def run_auto_watcher(user_id: int, page: ChromiumPage, credential_id: int,
 
                             console_log(f"任务‘{task['db_obj'].task_name}’视频学习完成或已中止。准备返回任务列表。", user_id, username, ip_address, level=logging.INFO)
                             # 直接导航回任务列表页面，而不是使用 page.back()
-                            page.get(task['db_obj'].task_url) # 直接导航到任务URL
-                            await asyncio.sleep(2) # 等待任务列表页重新加载
+                            page.get(main_task_list_url) # 直接导航到主任务列表URL
+                            await asyncio.sleep(5) # 增加等待时间，确保主任务列表页重新加载
+
+                            # 任务完成后，强制重新点击“专业技术人员继续教育”按钮，确保页面状态正确
+                            console_log(f"任务完成后，尝试重新点击‘专业技术人员继续教育’按钮以刷新任务列表。", user_id, username, ip_address, level=logging.INFO)
+                            try:
+                                professional_button = page.ele(f'xpath://label[text()=\'专业技术人员继续教育\']', timeout=10) # 重新定位按钮
+                                if professional_button:
+                                    professional_button.wait.click() # 使用 wait.click() 确保元素可点击
+                                    console_log(f"成功重新点击‘专业技术人员继续教育’按钮。", user_id, username, ip_address, level=logging.INFO)
+                                    await asyncio.sleep(5) # 等待页面加载新的课程列表
+                                else:
+                                    console_log(f"错误：任务完成后未找到‘专业技术人员继续教育’按钮，可能页面结构已改变。", user_id, username, ip_address, level=logging.ERROR)
+                            except Exception as e:
+                                console_log(f"重新点击‘专业技术人员继续教育’按钮时发生错误: {e}", user_id, username, ip_address, level=logging.ERROR)
 
                         except (ElementNotFoundError, PageDisconnectedError, CDPError) as e:
                             console_log(f"处理任务‘{task['db_obj'].task_name}’时出现错误: {e}，退出任务学习。", user_id, username, ip_address, level=logging.ERROR)

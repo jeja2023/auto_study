@@ -81,10 +81,25 @@ async function fetchAndDisplayCredentials() {
                 if (credential.tasks && credential.tasks.length > 0) {
                     totalTasks = credential.tasks.length;
                     completedTasks = credential.tasks.filter(task => task.is_completed).length;
-                    taskProgressContent = `${completedTasks} / ${totalTasks} (${(completedTasks / totalTasks * 100).toFixed(2)}%)`;
+                    
+                    // 计算总学时
+                    let totalStudyHours = 0;
+                    credential.tasks.forEach(task => {
+                        if (task.study_hours) {
+                            // 假设 study_hours 是 "X小时" 或 "X"
+                            const hours = parseInt(task.study_hours.replace('小时', ''));
+                            if (!isNaN(hours)) {
+                                totalStudyHours += hours;
+                            }
+                        }
+                    });
+
+                    // 调整显示顺序：学时在前，进度在后
+                    taskProgressContent = `学时: ${totalStudyHours}小时 - 进度: ${completedTasks} / ${totalTasks} (${(completedTasks / totalTasks * 100).toFixed(2)}%)`;
+                    
                     // 可以考虑添加一个 tooltip 或展开/折叠功能来显示详细任务列表
                     const detailedTasks = credential.tasks.map(task => 
-                        `<li>${task.task_name} - ${task.current_progress}</li>`
+                        `<li>${task.task_name} - ${task.current_progress} (${task.study_hours || '0小时'})</li>` // 详细任务也显示学时
                     ).join('');
                     taskProgressContent = `
                         <div title="${credential.website_name || 'N/A'}">
@@ -104,6 +119,7 @@ async function fetchAndDisplayCredentials() {
                     <td>${passwordCellContent}</td>
                     <td>
                         <div class="action-buttons">
+                            <label class="checkbox-container"><input type="checkbox" class="headless-checkbox" data-id="${credential.id}"> 无头模式</label>
                             <button class="btn-edit main-action-button" data-id="${credential.id}">编辑</button>
                             <button class="btn-delete main-action-button" data-id="${credential.id}">删除</button>
                             <button class="btn-start main-action-button" data-id="${credential.id}">开始学习</button>
@@ -144,14 +160,14 @@ async function deleteCredential(id) {
 }
 
 // 处理通过 ID 启动学习任务
-async function startLearningById(id) {
+async function startLearningById(id, isHeadless) {
     // 1. 立即在新标签页打开实时日志页面
     window.open(`/auto-learn?credentialId=${id}`, '_blank'); // 传递凭据ID并在新标签页打开
 
-    alert('正在启动学习任务...');
     try {
         const response = await authenticatedFetch(`/api/credentials/launch-web-for-login/${id}`, {
             method: 'POST',
+            body: JSON.stringify({ headless: isHeadless }) // 将headless状态传递给后端
         });
 
         const data = await response.json();
@@ -222,7 +238,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (deleteButton) {
             deleteCredential(deleteButton.dataset.id);
         } else if (startButton) {
-            startLearningById(startButton.dataset.id);
+            const row = startButton.closest('tr'); // 获取父行
+            const headlessCheckbox = row.querySelector(`.headless-checkbox[data-id="${credentialId}"]`); // 查找同行的复选框
+            const isHeadless = headlessCheckbox ? headlessCheckbox.checked : false; // 获取选中状态
+            startLearningById(startButton.dataset.id, isHeadless); // 传递 isHeadless
         } else if (viewPasswordButton) { // 处理查看密码按钮点击
             currentViewingCredentialId = viewPasswordButton.dataset.id; // 保存当前要查看的凭据ID
             passwordModal.style.display = 'block'; // 显示模态对话框
